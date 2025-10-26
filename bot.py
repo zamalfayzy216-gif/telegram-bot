@@ -7,20 +7,15 @@ Customer Service Bot for Telegram
 import logging
 import os
 from datetime import datetime
-# تم تعديل هذا السطر لاستيراد ChatAction من موقعه الصحيح
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
     MessageHandler,
     CallbackQueryHandler,
-    ConversationHandler,
     filters,
     ContextTypes,
 )
-# استيراد ChatAction من telegram.constants
-from telegram.constants import ChatAction
-
 
 # إعداد نظام السجلات
 logging.basicConfig(
@@ -29,11 +24,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Token البوت
-BOT_TOKEN = "7968719347:AAEUloIBy_gvD2cmE9vrdiHcZwClldYZ-Xk"
+# Token البوت (يجب وضعه في Render Environment Variables)
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
 # معرف المسؤول (يمكن تغييره لاحقاً)
-ADMIN_ID = None  # سيتم تعيينه من أول مستخدم
+ADMIN_ID = None
 
 # حالات المحادثة
 CHOOSING, TYPING_REPLY, WAITING_FOR_MESSAGE = range(3)
@@ -43,11 +38,9 @@ user_data = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """بدء المحادثة مع البوت"""
     user = update.effective_user
     user_id = user.id
-    
-    # تسجيل بيانات المستخدم
+
     if user_id not in user_data:
         user_data[user_id] = {
             'name': user.first_name,
@@ -55,8 +48,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             'start_time': datetime.now(),
             'messages': []
         }
-    
-    # رسالة الترحيب
+
     welcome_text = f"""
 👋 أهلاً وسهلاً {user.first_name}!
 
@@ -64,8 +56,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 اختر أحد الخيارات التالية:
 """
-    
-    # إنشاء لوحة المفاتيح
+
     keyboard = [
         [InlineKeyboardButton("❓ الأسئلة الشائعة", callback_data='faq')],
         [InlineKeyboardButton("📞 التواصل مع الدعم", callback_data='support')],
@@ -73,38 +64,179 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         [InlineKeyboardButton("💬 شكوى أو اقتراح", callback_data='complaint')],
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
+
     await update.message.reply_text(welcome_text, reply_markup=reply_markup)
     return CHOOSING
 
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """معالجة نقرات الأزرار"""
     query = update.callback_query
     await query.answer()
-    
+
     choice = query.data
-    user_id = query.from_user.id
-    
+
     if choice == 'faq':
         await handle_faq(query)
     elif choice == 'support':
-        await handle_support(query, context)
+        await handle_support(query)
     elif choice == 'about':
         await handle_about(query)
     elif choice == 'complaint':
-        await handle_complaint(query, context)
+        await handle_complaint(query)
     elif choice == 'back_to_menu':
         await back_to_menu(query)
-    
+
     return CHOOSING
 
 
-async def handle_faq(query) -> None:
-    """التعامل مع الأسئلة الشائعة"""
+async def handle_faq(query):
     faq_text = """
 ❓ **الأسئلة الشائعة**
 
+**س: كيف يمكنني الاتصال بفريق الدعم؟**
+ج: يمكنك اختيار "التواصل مع الدعم" من القائمة الرئيسية.
+
+**س: ما هي ساعات العمل؟**
+ج: نحن متاحون من الساعة 9 صباحاً إلى 6 مساءً، من الأحد إلى الخميس.
+
+**س: كم الوقت اللازم للرد؟**
+ج: عادةً نرد خلال 24 ساعة.
+
+---
+"""
+
+    keyboard = [
+        [InlineKeyboardButton("⬅️ العودة للقائمة الرئيسية", callback_data='back_to_menu')],
+    ]
+
+    await query.edit_message_text(text=faq_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+
+
+async def handle_support(query):
+    support_text = """
+📞 **التواصل مع الدعم**
+
+يرجى اختيار نوع المشكلة:
+"""
+
+    keyboard = [
+        [InlineKeyboardButton("🔧 مشكلة تقنية", callback_data='tech_issue')],
+        [InlineKeyboardButton("💳 مشكلة في الدفع", callback_data='payment_issue')],
+        [InlineKeyboardButton("📦 مشكلة في الطلب", callback_data='order_issue')],
+        [InlineKeyboardButton("❓ استفسار عام", callback_data='general_inquiry')],
+        [InlineKeyboardButton("⬅️ العودة للقائمة الرئيسية", callback_data='back_to_menu')],
+    ]
+
+    await query.edit_message_text(text=support_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+
+
+async def handle_about(query):
+    about_text = """
+ℹ️ **معلومات عنا**
+
+🏢 اسم الشركة: شركة الخدمات الممتازة
+📍 الرياض، المملكة العربية السعودية
+📧 support@company.com
+📱 +966 11 1234567
+
+⏰ ساعات العمل:
+الأحد - الخميس: 9 صباحاً - 6 مساءً
+
+---
+"""
+    keyboard = [[InlineKeyboardButton("⬅️ العودة للقائمة الرئيسية", callback_data='back_to_menu')]]
+
+    await query.edit_message_text(text=about_text, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
+
+
+async def handle_complaint(query):
+    text = """
+💬 **شكوى أو اقتراح**
+
+شكراً لاهتمامك! اكتب رسالتك الآن 👇
+"""
+
+    await query.edit_message_text(text=text, parse_mode='Markdown')
+
+
+async def back_to_menu(query):
+    welcome_text = """
+👋 القائمة الرئيسية
+
+اختر أحد الخيارات التالية:
+"""
+
+    keyboard = [
+        [InlineKeyboardButton("❓ الأسئلة الشائعة", callback_data='faq')],
+        [InlineKeyboardButton("📞 التواصل مع الدعم", callback_data='support')],
+        [InlineKeyboardButton("ℹ️ معلومات عنا", callback_data='about')],
+        [InlineKeyboardButton("💬 شكوى أو اقتراح", callback_data='complaint')],
+    ]
+
+    await query.edit_message_text(text=welcome_text, reply_markup=InlineKeyboardMarkup(keyboard))
+    return CHOOSING
+
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    text = update.message.text
+
+    if user_id in user_data:
+        user_data[user_id]['messages'].append({'text': text, 'timestamp': datetime.now()})
+
+    confirmation = f"""
+✅ تم استقبال رسالتك!
+رقم تتبع طلبك: `{user_id}`
+"""
+    await update.message.reply_text(confirmation, parse_mode='Markdown')
+
+
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = """
+🆘 أوامر البوت:
+
+/start - بدء من جديد
+/help - مساعدة
+/status - حالة الخدمة
+"""
+    await update.message.reply_text(text, parse_mode='Markdown')
+
+
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    status = f"""
+✅ الخدمة تعمل!
+
+📊 الإحصائيات:
+عدد المستخدمين: {len(user_data)}
+"""
+    await update.message.reply_text(status, parse_mode='Markdown')
+
+
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(msg="Error occurred:", exc_info=context.error)
+
+
+async def run_bot():
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("status", status_command))
+    application.add_handler(CallbackQueryHandler(button_callback))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    application.add_error_handler(error_handler)
+
+    logger.info("🚀 البوت يعمل ...")
+
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    await application.updater.idle()
+
+
+if __name__ == "__main__":
+    import asyncio
+    asyncio.run(run_bot())
 **س: كيف يمكنني الاتصال بفريق الدعم؟**
 ج: يمكنك اختيار "التواصل مع الدعم" من القائمة الرئيسية.
 
