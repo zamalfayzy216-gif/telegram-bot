@@ -7,7 +7,8 @@ Customer Service Bot for Telegram
 import logging
 import os
 from datetime import datetime
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ChatAction
+# تم تعديل هذا السطر لاستيراد ChatAction من موقعه الصحيح
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -17,6 +18,9 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+# استيراد ChatAction من telegram.constants
+from telegram.constants import ChatAction
+
 
 # إعداد نظام السجلات
 logging.basicConfig(
@@ -330,4 +334,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-
